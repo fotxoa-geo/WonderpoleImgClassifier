@@ -1,4 +1,5 @@
-image_path = r"C:\Users\spect\Desktop\EMIT STM Meeting\R1.jpg"  # Replace with your image path
+image_path = r"C:\Users\Marcu\OneDrive\Pictures\download (2).jfif"  # Replace with your image path
+image_path2 = r"C:\Users\Marcu\OneDrive\Pictures\download (2).jfif"
 
 import matplotlib.pyplot as plt
 import numpy as np
