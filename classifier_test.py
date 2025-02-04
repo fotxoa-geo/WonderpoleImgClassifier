@@ -1,4 +1,5 @@
-image_path = r"C:\Users\spect\Desktop\EMIT STM Meeting\R1.jpg"  # Replace with your image path
+image_path = r"C:\Users\mmgia\OneDrive\Pictures\Screenshots\Screenshot 2024-03-07 131157.png"  # Replace with your image path
+csv_path = r"C:\Users\mmgia\OneDrive\Documents\Geog199SS\testcsv"
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +7,7 @@ from PIL import Image
 import random
 import tkinter as tk
 from tkinter import ttk
+import csv
 
 # Load the image
 image = Image.open(image_path)
@@ -17,6 +19,12 @@ n = 10  # Number of points (change as needed)
 # Generate random points on the image
 points = [(random.randint(0, width - 1), random.randint(0, height - 1)) for _ in range(n)]
 point_labels = {}
+
+# Save point coords to CSV)
+with open(csv_path, mode="w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["X", "Y"])  # header
+    writer.writerows(points)  # point data
 
 # Define classification options
 classification_options = ["Class A", "Class B", "Class C"]  # Modify as needed
