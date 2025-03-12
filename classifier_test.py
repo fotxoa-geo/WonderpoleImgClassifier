@@ -9,7 +9,7 @@ from matplotlib.widgets import Button
 import os
 
 # Load the image
-image_path = r"test.jpeg"  # Replace with your image path
+image_path = r"C:\Users\spect\PycharmProjects\pythonProject\WonderpoleImgClassifier\wonderpole_images\SRB-047\DSC00480.JPG"  # Replace with your image path
 image = Image.open(image_path)
 width, height = image.size
 
@@ -17,7 +17,7 @@ width, height = image.size
 n = 3  # Change this as needed
 
 # Define classification options
-classification_options = ["Class A", "Class B", "Class C"]
+classification_options = ["GV", "NPV", "Soil"]
 
 # Generate random points
 points = [(random.randint(0, width - 1), random.randint(0, height - 1)) for _ in range(n)]
