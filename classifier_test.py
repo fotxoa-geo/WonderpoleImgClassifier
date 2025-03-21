@@ -181,6 +181,10 @@ fig.canvas.mpl_connect('button_press_event', on_click)
 # Connect the zoom event (scrolling)
 fig.canvas.mpl_connect('scroll_event', zoom)
 
+# Set the figure to full screen mode
+manager = plt.get_current_fig_manager()
+manager.window.state('zoomed')  # This maximizes the figure window
+
 plt.show()
 
 
