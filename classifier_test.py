@@ -22,16 +22,23 @@ classification_options = ["GV", "NPV", "Soil"]
 points = [(random.randint(0, width - 1), random.randint(0, height - 1)) for _ in range(n)]
 point_labels = {point: None for point in points}  # Initialize with no classification
 
-# Color mapping for each class
+# Updated color mapping for each class
 color_map = {"GV": "green", "NPV": "red", "Soil": "blue"}
 
-# Initialize colors (default to black for unclassified points)
-colors = ["black"] * len(points)
+# Default color for unclassified points
+default_color = "white"
+
+# Initialize colors (default to white for unclassified points)
+colors = [default_color] * len(points)
 
 # Create figure and display image
-fig, ax = plt.subplots()
-plt.subplots_adjust(bottom=0.2)
+fig, ax = plt.subplots(figsize=(10, 8))  # Adjust size of the figure for more space
+plt.subplots_adjust(bottom=0.25)  # Adjust bottom space to allow for buttons
 ax.imshow(image)
+
+# Store original axis limits for later use
+original_xlim = ax.get_xlim()
+original_ylim = ax.get_ylim()
 
 # Plot initial points
 scatter_plot = ax.scatter(*zip(*points), c=colors, s=20)
@@ -61,7 +68,7 @@ def save_to_csv(event=None):
             for point in points:
                 # Write data for all points, whether classified or not
                 classification = point_labels.get(point, "Unclassified")  # Default to "Unclassified" if not classified
-                color = colors[points.index(point)]  # Get color (default "black" for unclassified)
+                color = colors[points.index(point)]  # Get color (default "white" for unclassified)
                 writer.writerow([point[0], point[1], classification, color])  # Added color
         print(f"CSV file saved as: {file_name}")
 
@@ -120,14 +127,62 @@ def on_click(event):
         closest_point = min(points, key=lambda p: (p[0] - x) ** 2 + (p[1] - y) ** 2)
         classify_point(closest_point)
 
+# Function for zooming using mouse scroll
+def zoom(event):
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
+
+    # Get the current axis limits
+    x_center, y_center = (event.xdata, event.ydata)
+
+    # Zoom in or out based on scroll direction
+    if event.button == 'up':  # Zoom in
+        factor = 0.8
+    elif event.button == 'down':  # Zoom out
+        factor = 1.2
+    else:
+        return
+
+    # Calculate new axis limits
+    new_xlim = [x_center - (x_center - xlim[0]) * factor, x_center + (xlim[1] - x_center) * factor]
+    new_ylim = [y_center - (y_center - ylim[0]) * factor, y_center + (ylim[1] - y_center) * factor]
+
+    # Apply the new zoom limits
+    ax.set_xlim(new_xlim)
+    ax.set_ylim(new_ylim)
+
+    # Scale point sizes proportionally with zoom level (opposite direction)
+    zoom_level = (xlim[1] - xlim[0]) / (original_xlim[1] - original_xlim[0])
+
+    # Adjust the point size, making them grow with zoom-in
+    scatter_plot.set_sizes([20 * (1 / zoom_level)] * len(points))  # Adjust size to grow with zoom level
+
+    plt.draw()
+
+# Function to reset to the original view
+def reset_view(event=None):
+    ax.set_xlim(original_xlim)
+    ax.set_ylim(original_ylim)
+    scatter_plot.set_sizes([20] * len(points))  # Reset to default point size
+    plt.draw()
+
 # Add save button
-ax_button = plt.axes([0.75, 0.05, 0.15, 0.075])
+ax_button = plt.axes([0.75, 0.05, 0.15, 0.075])  # Position for save button
 button = Button(ax_button, 'Save to CSV')
 button.on_clicked(save_to_csv)
+
+# Add reset view button (Further moved down to avoid overlap)
+reset_button_ax = plt.axes([0.75, 0.15, 0.15, 0.075])  # Adjusted position (further down)
+reset_button = Button(reset_button_ax, 'Reset View')
+reset_button.on_clicked(reset_view)
 
 # Connect the click event to the function
 fig.canvas.mpl_connect('button_press_event', on_click)
 
+# Connect the zoom event (scrolling)
+fig.canvas.mpl_connect('scroll_event', zoom)
+
 plt.show()
+
+
 
 
