@@ -17,14 +17,14 @@ width, height = image.size
 n = 30  # Change this to 30
 
 # Define classification options
-classification_options = ["GV", "NPV", "Soil"]
+classification_options = ["GV", "NPV", "Soil", "N/A"]
 
 # Generate random points (30 points)
 points = [(random.randint(0, width - 1), random.randint(0, height - 1)) for _ in range(n)]
 point_labels = {point: None for point in points}  # Initialize with no classification
 
 # Updated color mapping for each class
-color_map = {"GV": "green", "NPV": "red", "Soil": "blue"}
+color_map = {"GV": "green", "NPV": "red", "Soil": "blue", "N/A": "grey"}
 
 # Default color for unclassified points
 default_color = "white"
