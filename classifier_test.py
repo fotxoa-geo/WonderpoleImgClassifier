@@ -6,6 +6,7 @@ import csv
 import os
 from matplotlib.widgets import Button
 from PIL import Image
+from matplotlib.patheffects import withStroke  # Import for text border effect
 
 # Load the image
 image_path = r"C:\Users\Marcu\OneDrive\Desktop\Wonderpole Images\Northern Quadrants\Northwest.JPG"
@@ -40,8 +41,11 @@ ax.imshow(image)
 original_xlim = ax.get_xlim()
 original_ylim = ax.get_ylim()
 
-# Plot initial points
-scatter_plot = ax.scatter(*zip(*points), c=colors, s=20)
+# Create a scatter plot with white halo points (larger points for halo effect)
+halo_points = ax.scatter(*zip(*points), c="white", s=90, edgecolors="white", alpha=0.5)  # Halo size changed to 90
+
+# Plot initial points (smaller ones)
+scatter_plot = ax.scatter(*zip(*points), c=colors, s=30)
 
 # Store text annotations
 annotations = {}
@@ -83,19 +87,27 @@ def classify_point(closest_point):
         colors[idx] = color_map[selected_class]  # Assign new color
         scatter_plot.set_color(colors)  # Update scatter plot colors
 
-        # Update or create annotation
+        # Create or update annotation with white border (halo effect)
         if closest_point in annotations:
             annotations[closest_point].set_text(selected_class)
         else:
-            annotations[closest_point] = ax.annotate(selected_class, closest_point,
-                                                     textcoords="offset points",
-                                                     xytext=(0, 5), ha='center',
-                                                     color=color_map[selected_class])
+            # Create the path_effects for white border (halo effect)
+            border_effect = withStroke(linewidth=3, foreground="white")
+
+            annotations[closest_point] = ax.annotate(
+                selected_class, closest_point,
+                textcoords="offset points",
+                xytext=(0, 5), ha='center',
+                color=color_map[selected_class],
+                fontsize=12,  # Adjust font size as needed
+                fontweight='bold',  # Make the text bold
+                path_effects=[border_effect]  # Apply white border (halo effect)
+            )
 
         plt.draw()
         root.destroy()
 
-    # Create Tkinter window
+    # Create Tkinter window for classification selection
     root = tk.Tk()
     root.geometry("200x100+200+200")
 
@@ -154,7 +166,8 @@ def zoom(event):
     zoom_level = (xlim[1] - xlim[0]) / (original_xlim[1] - original_xlim[0])
 
     # Adjust the point size, making them grow with zoom-in
-    scatter_plot.set_sizes([20 * (1 / zoom_level)] * len(points))  # Adjust size to grow with zoom level
+    scatter_plot.set_sizes([30 * (1 / zoom_level)] * len(points))  # Adjust size to grow with zoom level
+    halo_points.set_sizes([90 * (1 / zoom_level)] * len(points))  # Halo points size set to 90
 
     plt.draw()
 
@@ -162,7 +175,8 @@ def zoom(event):
 def reset_view(event=None):
     ax.set_xlim(original_xlim)
     ax.set_ylim(original_ylim)
-    scatter_plot.set_sizes([20] * len(points))  # Reset to default point size
+    scatter_plot.set_sizes([30] * len(points))  # Reset to default point size
+    halo_points.set_sizes([90] * len(points))  # Reset halo size
     plt.draw()
 
 # Add save button
@@ -186,7 +200,3 @@ manager = plt.get_current_fig_manager()
 manager.window.state('zoomed')  # This maximizes the figure window
 
 plt.show()
-
-
-
-
