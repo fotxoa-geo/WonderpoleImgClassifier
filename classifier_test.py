@@ -9,7 +9,7 @@ from PIL import Image
 from matplotlib.patheffects import withStroke  # Import for text border effect
 
 # Load the image
-image_path = r"C:\Users\Marcu\OneDrive\Desktop\Wonderpole Images\Northern Quadrants\Northwest.JPG"
+image_path = r"C:\Users\Marcu\OneDrive\Desktop\Wonderpole Images\Northern Quadrants\Northeast.JPG"
 image = Image.open(image_path)
 width, height = image.size
 
