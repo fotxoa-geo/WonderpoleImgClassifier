@@ -11,7 +11,7 @@ from matplotlib.patheffects import withStroke  # For halo effect around text
 # ================= CONFIGURATION =================
 random.seed(13)
 
-image_path = r"C:\Users\Marcu\OneDrive\Desktop\Wonderpole Images\Northern Quadrants\Northeast.JPG"
+image_path = r"C:\Users\Marcu\OneDrive\Desktop\Wonderpole Images\Southern Quadrants\Southwest.JPG"
 image = Image.open(image_path)
 width, height = image.size
 n = 30
@@ -22,7 +22,7 @@ default_color = "white"
 
 frame_width = 90
 frame_height = 60
-current_point_index = 0
+current_point_index = None  # None = Full View
 
 # ================= POINT GENERATION =================
 points = []
@@ -49,13 +49,16 @@ halo_points = ax.scatter(*zip(*points), c="white", s=90, edgecolors="white", alp
 scatter_plot = ax.scatter(*zip(*points), c=colors, s=30)
 annotations = {}
 
-# Create a text box for point index display
+# Point index display
 index_text_ax = plt.axes([0.45, 0.05, 0.1, 0.075])
-index_text_ax.axis('off')  # Hide box and ticks
+index_text_ax.axis('off')
 index_display = index_text_ax.text(0.5, 0.5, "", ha='center', va='center', fontsize=12, fontweight='bold')
 
 def update_index_display():
-    index_display.set_text(f"Point {current_point_index + 1} of {n}")
+    if current_point_index is None:
+        index_display.set_text("Full View")
+    else:
+        index_display.set_text(f"Point {current_point_index + 1} of {n}")
     fig.canvas.draw_idle()
 
 # ================= FUNCTIONALITY =================
@@ -137,25 +140,33 @@ def zoom(event):
     plt.draw()
 
 def reset_view(event=None):
+    global current_point_index
+    current_point_index = None
     ax.set_xlim(original_xlim)
     ax.set_ylim(original_ylim)
     scatter_plot.set_sizes([30] * len(points))
     halo_points.set_sizes([90] * len(points))
+    update_index_display()
     plt.draw()
 
 def focus_on_point(index):
     global current_point_index
-    current_point_index = index % len(points)
+    index = index % len(points)
+    current_point_index = index
     x, y = points[current_point_index]
     ax.set_xlim(x - frame_width // 2, x + frame_width // 2)
     ax.set_ylim(y + frame_height // 2, y - frame_height // 2)
     update_index_display()
 
 def next_point(event=None):  # ⬆ Go forward
-    focus_on_point(current_point_index + 1)
+    global current_point_index
+    start_index = current_point_index if current_point_index is not None else -1
+    focus_on_point(start_index + 1)
 
 def prev_point(event=None):  # ⬇ Go back
-    focus_on_point(current_point_index - 1)
+    global current_point_index
+    start_index = current_point_index if current_point_index is not None else 0
+    focus_on_point(start_index - 1)
 
 def on_key(event):
     if event.key == 'up':      # ⬆ = Next
@@ -172,7 +183,6 @@ reset_button_ax = plt.axes([0.75, 0.15, 0.15, 0.075])
 reset_button = Button(reset_button_ax, 'Reset View')
 reset_button.on_clicked(reset_view)
 
-# Inverted button layout
 prev_button_ax = plt.axes([0.05, 0.05, 0.15, 0.075])
 prev_button = Button(prev_button_ax, '⬇ Prev Point')
 prev_button.on_clicked(prev_point)
@@ -189,7 +199,5 @@ fig.canvas.mpl_connect('key_press_event', on_key)
 manager = plt.get_current_fig_manager()
 manager.window.state('zoomed')
 
-# Full image view on load
 update_index_display()
 plt.show()
-
