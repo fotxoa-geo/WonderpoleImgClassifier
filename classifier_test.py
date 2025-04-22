@@ -6,197 +6,190 @@ import csv
 import os
 from matplotlib.widgets import Button
 from PIL import Image
-from matplotlib.patheffects import withStroke  # Import for text border effect
+from matplotlib.patheffects import withStroke  # For halo effect around text
 
-# Load the image
+# ================= CONFIGURATION =================
+random.seed(13)
+
 image_path = r"C:\Users\Marcu\OneDrive\Desktop\Wonderpole Images\Northern Quadrants\Northeast.JPG"
 image = Image.open(image_path)
 width, height = image.size
+n = 30
 
-# Set the number of points to classify initially (30 points)
-n = 30  # Change this to 30
-
-# Define classification options
 classification_options = ["GV", "NPV", "Soil"]
-
-# Generate random points (30 points)
-points = [(random.randint(0, width - 1), random.randint(0, height - 1)) for _ in range(n)]
-point_labels = {point: None for point in points}  # Initialize with no classification
-
-# Updated color mapping for each class
 color_map = {"GV": "green", "NPV": "red", "Soil": "blue"}
-
-# Default color for unclassified points
 default_color = "white"
 
-# Initialize colors (default to white for unclassified points)
+frame_width = 90
+frame_height = 60
+current_point_index = 0
+
+# ================= POINT GENERATION =================
+points = []
+point_rgbs = {}
+for _ in range(n):
+    x = random.randint(0, width - 1)
+    y = random.randint(0, height - 1)
+    rgb = image.getpixel((x, y))[:3]
+    points.append((x, y))
+    point_rgbs[(x, y)] = rgb
+
+point_labels = {point: None for point in points}
 colors = [default_color] * len(points)
 
-# Create figure and display image
-fig, ax = plt.subplots(figsize=(10, 8))  # Adjust size of the figure for more space
-plt.subplots_adjust(bottom=0.25)  # Adjust bottom space to allow for buttons
+# ================= FIGURE SETUP =================
+fig, ax = plt.subplots(figsize=(10, 8))
+plt.subplots_adjust(bottom=0.3)
 ax.imshow(image)
 
-# Store original axis limits for later use
 original_xlim = ax.get_xlim()
 original_ylim = ax.get_ylim()
 
-# Create a scatter plot with white halo points (larger points for halo effect)
-halo_points = ax.scatter(*zip(*points), c="white", s=90, edgecolors="white", alpha=0.5)  # Halo size changed to 90
-
-# Plot initial points (smaller ones)
+halo_points = ax.scatter(*zip(*points), c="white", s=90, edgecolors="white", alpha=0.5)
 scatter_plot = ax.scatter(*zip(*points), c=colors, s=30)
-
-# Store text annotations
 annotations = {}
 
-# Function to save points to CSV
-def save_to_csv(event=None):
-    # Ask for the file name
-    root = tk.Tk()
-    root.withdraw()  # Hide the root window
+# Create a text box for point index display
+index_text_ax = plt.axes([0.45, 0.05, 0.1, 0.075])
+index_text_ax.axis('off')  # Hide box and ticks
+index_display = index_text_ax.text(0.5, 0.5, "", ha='center', va='center', fontsize=12, fontweight='bold')
 
-    # Open a file dialog to choose the save location and file name
+def update_index_display():
+    index_display.set_text(f"Point {current_point_index + 1} of {n}")
+    fig.canvas.draw_idle()
+
+# ================= FUNCTIONALITY =================
+def save_to_csv(event=None):
+    root = tk.Tk()
+    root.withdraw()
     file_name = filedialog.asksaveasfilename(
-        initialdir=os.path.expanduser("~") + "/Downloads",  # Default to Downloads folder
+        initialdir=os.path.expanduser("~") + "/Downloads",
         title="Save CSV as...",
-        filetypes=[("CSV Files", "*.csv")],  # Filter for CSV files
+        filetypes=[("CSV Files", "*.csv")],
         defaultextension=".csv"
     )
-
-    # If the user selected a file (didn't cancel the dialog)
     if file_name:
         with open(file_name, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['X', 'Y', 'Class', 'Color'])  # Added 'Color' header
+            writer.writerow(['X', 'Y', 'Class', 'R', 'G', 'B'])
             for point in points:
-                # Write data for all points, whether classified or not
-                classification = point_labels.get(point, "Unclassified")  # Default to "Unclassified" if not classified
-                color = colors[points.index(point)]  # Get color (default "white" for unclassified)
-                writer.writerow([point[0], point[1], classification, color])  # Added color
+                label = point_labels.get(point, "Unclassified")
+                r, g, b = point_rgbs[point]
+                writer.writerow([point[0], point[1], label, r, g, b])
         print(f"CSV file saved as: {file_name}")
 
-# Function to classify a point
 def classify_point(closest_point):
     def on_select():
         selected_class = combo.get()
         point_labels[closest_point] = selected_class
-
-        # Update color list
         idx = points.index(closest_point)
-        colors[idx] = color_map[selected_class]  # Assign new color
-        scatter_plot.set_color(colors)  # Update scatter plot colors
+        colors[idx] = color_map[selected_class]
+        scatter_plot.set_color(colors)
 
-        # Create or update annotation with white border (halo effect)
         if closest_point in annotations:
             annotations[closest_point].set_text(selected_class)
         else:
-            # Create the path_effects for white border (halo effect)
-            border_effect = withStroke(linewidth=3, foreground="white")
-
+            border = withStroke(linewidth=3, foreground="white")
             annotations[closest_point] = ax.annotate(
                 selected_class, closest_point,
-                textcoords="offset points",
-                xytext=(0, 5), ha='center',
-                color=color_map[selected_class],
-                fontsize=12,  # Adjust font size as needed
-                fontweight='bold',  # Make the text bold
-                path_effects=[border_effect]  # Apply white border (halo effect)
+                textcoords="offset points", xytext=(0, 5),
+                ha='center', color=color_map[selected_class],
+                fontsize=12, fontweight='bold',
+                path_effects=[border]
             )
-
         plt.draw()
         root.destroy()
 
-    # Create Tkinter window for classification selection
     root = tk.Tk()
     root.geometry("200x100+200+200")
-
-    label = tk.Label(root, text=f"Classify point {closest_point}:")
-    label.pack()
-
+    tk.Label(root, text=f"Classify point {closest_point}:").pack()
     combo = ttk.Combobox(root, values=classification_options)
-    combo.pack()
-
-    # Pre-select current classification
     current_label = point_labels.get(closest_point)
     combo.set(current_label if current_label else classification_options[0])
-
-    # Add button to confirm classification
-    btn = tk.Button(root, text="OK", command=on_select)
-    btn.pack()
-
+    combo.pack()
+    tk.Button(root, text="OK", command=on_select).pack()
     root.mainloop()
 
-# Function to handle clicks on existing points and classify them
 def on_click(event):
-    if event.inaxes != ax:
+    if event.inaxes != ax or event.xdata is None or event.ydata is None:
         return
+    x, y = int(event.xdata), int(event.ydata)
+    closest_point = min(points, key=lambda p: (p[0] - x) ** 2 + (p[1] - y) ** 2)
+    classify_point(closest_point)
 
-    if event.xdata and event.ydata:
-        x, y = int(event.xdata), int(event.ydata)
-
-        # Find the closest point that was clicked on
-        closest_point = min(points, key=lambda p: (p[0] - x) ** 2 + (p[1] - y) ** 2)
-        classify_point(closest_point)
-
-# Function for zooming using mouse scroll
 def zoom(event):
     xlim, ylim = ax.get_xlim(), ax.get_ylim()
-
-    # Get the current axis limits
-    x_center, y_center = (event.xdata, event.ydata)
-
-    # Zoom in or out based on scroll direction
-    if event.button == 'up':  # Zoom in
+    x_center, y_center = event.xdata, event.ydata
+    if event.button == 'up':
         factor = 0.8
-    elif event.button == 'down':  # Zoom out
+    elif event.button == 'down':
         factor = 1.2
     else:
         return
-
-    # Calculate new axis limits
     new_xlim = [x_center - (x_center - xlim[0]) * factor, x_center + (xlim[1] - x_center) * factor]
     new_ylim = [y_center - (y_center - ylim[0]) * factor, y_center + (ylim[1] - y_center) * factor]
-
-    # Apply the new zoom limits
     ax.set_xlim(new_xlim)
     ax.set_ylim(new_ylim)
 
-    # Scale point sizes proportionally with zoom level (opposite direction)
     zoom_level = (xlim[1] - xlim[0]) / (original_xlim[1] - original_xlim[0])
-
-    # Adjust the point size, making them grow with zoom-in
-    scatter_plot.set_sizes([30 * (1 / zoom_level)] * len(points))  # Adjust size to grow with zoom level
-    halo_points.set_sizes([90 * (1 / zoom_level)] * len(points))  # Halo points size set to 90
-
+    scatter_plot.set_sizes([30 * (1 / zoom_level)] * len(points))
+    halo_points.set_sizes([90 * (1 / zoom_level)] * len(points))
     plt.draw()
 
-# Function to reset to the original view
 def reset_view(event=None):
     ax.set_xlim(original_xlim)
     ax.set_ylim(original_ylim)
-    scatter_plot.set_sizes([30] * len(points))  # Reset to default point size
-    halo_points.set_sizes([90] * len(points))  # Reset halo size
+    scatter_plot.set_sizes([30] * len(points))
+    halo_points.set_sizes([90] * len(points))
     plt.draw()
 
-# Add save button
-ax_button = plt.axes([0.75, 0.05, 0.15, 0.075])  # Position for save button
+def focus_on_point(index):
+    global current_point_index
+    current_point_index = index % len(points)
+    x, y = points[current_point_index]
+    ax.set_xlim(x - frame_width // 2, x + frame_width // 2)
+    ax.set_ylim(y + frame_height // 2, y - frame_height // 2)
+    update_index_display()
+
+def next_point(event=None):  # ⬆ Go forward
+    focus_on_point(current_point_index + 1)
+
+def prev_point(event=None):  # ⬇ Go back
+    focus_on_point(current_point_index - 1)
+
+def on_key(event):
+    if event.key == 'up':      # ⬆ = Next
+        next_point()
+    elif event.key == 'down':  # ⬇ = Previous
+        prev_point()
+
+# ================= UI ELEMENTS =================
+ax_button = plt.axes([0.75, 0.05, 0.15, 0.075])
 button = Button(ax_button, 'Save to CSV')
 button.on_clicked(save_to_csv)
 
-# Add reset view button (Further moved down to avoid overlap)
-reset_button_ax = plt.axes([0.75, 0.15, 0.15, 0.075])  # Adjusted position (further down)
+reset_button_ax = plt.axes([0.75, 0.15, 0.15, 0.075])
 reset_button = Button(reset_button_ax, 'Reset View')
 reset_button.on_clicked(reset_view)
 
-# Connect the click event to the function
+# Inverted button layout
+prev_button_ax = plt.axes([0.05, 0.05, 0.15, 0.075])
+prev_button = Button(prev_button_ax, '⬇ Prev Point')
+prev_button.on_clicked(prev_point)
+
+next_button_ax = plt.axes([0.25, 0.05, 0.15, 0.075])
+next_button = Button(next_button_ax, '⬆ Next Point')
+next_button.on_clicked(next_point)
+
+# ================= INIT + EVENTS =================
 fig.canvas.mpl_connect('button_press_event', on_click)
-
-# Connect the zoom event (scrolling)
 fig.canvas.mpl_connect('scroll_event', zoom)
+fig.canvas.mpl_connect('key_press_event', on_key)
 
-# Set the figure to full screen mode
 manager = plt.get_current_fig_manager()
-manager.window.state('zoomed')  # This maximizes the figure window
+manager.window.state('zoomed')
 
+# Full image view on load
+update_index_display()
 plt.show()
+
